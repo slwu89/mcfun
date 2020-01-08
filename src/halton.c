@@ -115,3 +115,18 @@ static const int primes[] = {
   , 7727, 7741, 7753, 7757, 7759, 7789, 7793, 7817, 7823, 7829
   , 7841, 7853, 7867, 7873, 7877, 7879, 7883, 7901, 7907, 7919
 };
+
+
+/* --------------------------------------------------------------------------------
+#   Randomized radical inverse functions for indices in ind and for base b.
+#   dest: pointer to memory where results will be written to
+#   ind: pointer to indices
+#   n: number of indices (also dest)
+#   b: base
+-------------------------------------------------------------------------------- */
+
+void randradinv(double* dest, int* ind, const int n, const int b){
+
+  double b2r = 1./b;
+
+};

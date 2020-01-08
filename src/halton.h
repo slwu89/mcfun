@@ -15,6 +15,7 @@
 #include <R.h>
 #include <Rmath.h>
 
-
+/* Randomized radical inverse functions for indices in ind and for base b. */
+void randradinv(double* dest, int* ind, const int n, const int b);
 
 #endif
