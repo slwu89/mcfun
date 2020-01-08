@@ -118,15 +118,66 @@ static const int primes[] = {
 
 
 /* --------------------------------------------------------------------------------
+#   get a random integer from [0,b-1] using R's PRNG
+-------------------------------------------------------------------------------- */
+
+int randint(const int b){
+  int ans;
+  GetRNGstate();
+  ans = (int)floor(b * unif_rand());
+  PutRNGstate();
+  return ans;
+};
+
+
+/* --------------------------------------------------------------------------------
+#   randomly permute an array of size n
+-------------------------------------------------------------------------------- */
+
+void permute(int* array, const int n);
+
+
+/* --------------------------------------------------------------------------------
 #   Randomized radical inverse functions for indices in ind and for base b.
-#   dest: pointer to memory where results will be written to
+#   ans: pointer to memory where results will be written to
 #   ind: pointer to indices
-#   n: number of indices (also dest)
+#   n: number of indices (also size of ans)
 #   b: base
 -------------------------------------------------------------------------------- */
 
-void randradinv(double* dest, int* ind, const int n, const int b){
+void randradinv(double* ans, int* ind, const int n, const int b){
 
   double b2r = 1./b;
 
+  for(size_t i=0; i<n; i++){
+    ans[i] = 0.;
+  }
+
+  int* res = (int*)malloc(n*sizeof(int));
+  memcpy(res,ind,sizeof(int)*n);
+
+  /* things we need in the loop */
+  int* dig = (int*)malloc(n*sizeof(int));
+  int* pdig = (int*)malloc(n*sizeof(int));
+
+  int* perm = (int*)malloc(b*sizeof(int));
+  for(size_t i=0; i<b; i++){
+    perm[i] = i;
+  }
+
+  /* assumes floating point comparisons, fixed precision */
+  while(1. - b2r < 1.){
+
+    // res %% b
+    for(size_t i=0; i<n; i++){
+      dig[i] = res[i] % b;
+    }
+
+
+  }
+
+  free(res);
+  free(dig);
+  free(pdig);
+  free(perm);
 };

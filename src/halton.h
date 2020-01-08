@@ -11,11 +11,18 @@
 #define HALTON_H
 
 #include <stdio.h>
+#include <string.h>
 
 #include <R.h>
 #include <Rmath.h>
 
+/* get a random integer from [0,b-1] */
+int randint(const int b);
+
+/* randomly permute an array of size n */
+void permute(int* array, const int n);
+
 /* Randomized radical inverse functions for indices in ind and for base b. */
-void randradinv(double* dest, int* ind, const int n, const int b);
+void randradinv(double* ans, int* ind, const int n, const int b);
 
 #endif
