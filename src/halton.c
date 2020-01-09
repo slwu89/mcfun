@@ -122,19 +122,42 @@ static const int primes[] = {
 -------------------------------------------------------------------------------- */
 
 int randint(const int b){
-  int ans;
-  GetRNGstate();
-  ans = (int)floor(b * unif_rand());
-  PutRNGstate();
-  return ans;
+  return (int)floor(b * unif_rand());;
 };
+
+
+int Equilikely(const int a, const int b){
+  return a + (int) ((b - a + 1) * unif_rand());
+}
 
 
 /* --------------------------------------------------------------------------------
 #   randomly permute an array of size n
 -------------------------------------------------------------------------------- */
 
-void permute(int* array, const int n);
+void permute(int* array, const int n){
+  for(int i=n-1; i>0; i--){
+      int j = Equilikely(0,i);
+      int tmp = array[i];
+      array[i] = array[j];
+      array[j] = tmp;
+  }
+};
+
+SEXP permvec_C(SEXP vec){
+  int n = Rf_length(vec);
+  SEXP out = PROTECT(Rf_allocVector(INTSXP, n));
+  memcpy(INTEGER(out),INTEGER(vec),sizeof(int)*n);
+
+  GetRNGstate();
+
+  permute(INTEGER(out),n);
+
+  PutRNGstate();
+
+  UNPROTECT(1);
+  return out;
+}
 
 
 /* --------------------------------------------------------------------------------
@@ -146,6 +169,8 @@ void permute(int* array, const int n);
 -------------------------------------------------------------------------------- */
 
 void randradinv(double* ans, int* ind, const int n, const int b){
+
+  GetRNGstate();
 
   double b2r = 1./b;
 
@@ -180,4 +205,6 @@ void randradinv(double* ans, int* ind, const int n, const int b){
   free(dig);
   free(pdig);
   free(perm);
+
+  PutRNGstate();
 };

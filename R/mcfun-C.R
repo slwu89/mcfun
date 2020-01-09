@@ -6,3 +6,12 @@
 #   January 2020
 #
 # -------------------------------------------------------------------------------- #
+
+
+#' test
+#'
+#' @useDynLib mcfun permvec_C
+#' @export
+permvec <- function(vec){
+  .Call(permvec_C,as.integer(vec))
+}

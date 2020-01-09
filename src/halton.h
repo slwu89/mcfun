@@ -15,6 +15,7 @@
 
 #include <R.h>
 #include <Rmath.h>
+#include <Rinternals.h>
 
 /* get a random integer from [0,b-1] */
 int randint(const int b);
@@ -24,5 +25,7 @@ void permute(int* array, const int n);
 
 /* Randomized radical inverse functions for indices in ind and for base b. */
 void randradinv(double* ans, int* ind, const int n, const int b);
+
+SEXP permvec_C(SEXP vec);
 
 #endif
