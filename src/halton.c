@@ -121,12 +121,7 @@ static const int primes[] = {
 #   get a random integer from [0,b-1] using R's PRNG
 -------------------------------------------------------------------------------- */
 
-int randint(const int b){
-  return (int)floor(b * unif_rand());;
-};
-
-
-int Equilikely(const int a, const int b){
+int randint(const int a, const int b){
   return a + (int) ((b - a + 1) * unif_rand());
 }
 
@@ -137,7 +132,7 @@ int Equilikely(const int a, const int b){
 
 void permute(int* array, const int n){
   for(int i=n-1; i>0; i--){
-      int j = Equilikely(0,i);
+      int j = randint(0,i);
       int tmp = array[i];
       array[i] = array[j];
       array[j] = tmp;
@@ -145,14 +140,13 @@ void permute(int* array, const int n){
 };
 
 SEXP permvec_C(SEXP vec){
+
   int n = Rf_length(vec);
   SEXP out = PROTECT(Rf_allocVector(INTSXP, n));
   memcpy(INTEGER(out),INTEGER(vec),sizeof(int)*n);
 
   GetRNGstate();
-
   permute(INTEGER(out),n);
-
   PutRNGstate();
 
   UNPROTECT(1);
@@ -197,6 +191,9 @@ void randradinv(double* ans, int* ind, const int n, const int b){
     for(size_t i=0; i<n; i++){
       dig[i] = res[i] % b;
     }
+
+    // sample(b)
+    permute(perm,b);
 
 
   }

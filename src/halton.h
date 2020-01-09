@@ -18,7 +18,7 @@
 #include <Rinternals.h>
 
 /* get a random integer from [0,b-1] */
-int randint(const int b);
+int randint(const int a, const int b);
 
 /* randomly permute an array of size n */
 void permute(int* array, const int n);
