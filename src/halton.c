@@ -153,6 +153,25 @@ SEXP permvec_C(SEXP vec){
   return out;
 }
 
+/* --------------------------------------------------------------------------------
+#   generate a new array (dest) from elements in (src) ordered by (order); duplicates allowed
+-------------------------------------------------------------------------------- */
+void order(int* dest, const int* const src, const int* const order, const int n){
+  for(int i=0; i<n; i++){
+    dest[i] = src[order[i]];
+  }
+};
+
+SEXP ordervec_C(SEXP vector, SEXP orderV){
+  int n = Rf_length(orderV);
+  SEXP out = PROTECT(Rf_allocVector(INTSXP,n));
+
+  order(INTEGER(out),INTEGER(vector),INTEGER(orderV),n);
+
+  UNPROTECT(1);
+  return out;
+}
+
 
 /* --------------------------------------------------------------------------------
 #   Randomized radical inverse functions for indices in ind and for base b.
@@ -162,13 +181,15 @@ SEXP permvec_C(SEXP vec){
 #   b: base
 -------------------------------------------------------------------------------- */
 
-void randradinv(double* ans, int* ind, const int n, const int b){
+void randradinv(double* ans, int* ind, const int n, int b){
 
   GetRNGstate();
+  Rprintf("b: %d\n",b);
 
-  double b2r = 1./b;
+  double b2r = 1.0 / (double)b;
+  Rprintf("b2r: %f\n",b2r);
 
-  for(size_t i=0; i<n; i++){
+  for(int i=0; i<n; i++){
     ans[i] = 0.;
   }
 
@@ -180,22 +201,54 @@ void randradinv(double* ans, int* ind, const int n, const int b){
   int* pdig = (int*)malloc(n*sizeof(int));
 
   int* perm = (int*)malloc(b*sizeof(int));
-  for(size_t i=0; i<b; i++){
+  for(int i=0; i<b; i++){
     perm[i] = i;
   }
 
   /* assumes floating point comparisons, fixed precision */
+  int ii = 1;
   while(1. - b2r < 1.){
+    Rprintf("on iteration %d\n",ii);
 
     // res %% b
-    for(size_t i=0; i<n; i++){
+    for(int i=0; i<n; i++){
       dig[i] = res[i] % b;
+      Rprintf("res[i] = %d, b = %d, dig[i] = %d --- ",res[i],b,dig[i]);
     }
+    Rprintf("\n");
 
     // sample(b)
     permute(perm,b);
+    for(int i=0; i<b; i++){
+      Rprintf("perm[i] = %d --- ",perm[i]);
+    }
+    Rprintf("\n");
 
+    // perm[dig]
+    order(pdig,perm,dig,n);
+    for(int i=0; i<n; i++){
+      Rprintf("pdig[i] = %d --- ",pdig[i]);
+    }
+    Rprintf("\n");
 
+    // ans <- ans + pdig * b2r
+    for(int i=0; i<n; i++){
+      ans[i] = ans[i] + (double)pdig[i] * b2r;
+      Rprintf("ans[i] = %d --- ",ans[i]);
+    }
+    Rprintf("\n");
+
+    // b2r <- b2r/b
+    b2r = b2r/(double)b;
+    Rprintf("b2r: %d\n",b2r);
+
+    // res <- (res - dig)/b
+    for(int i=0; i<n; i++){
+      res[i] = (res[i] - dig[i])/b;
+      Rprintf("res[i] = %d --- ",res[i]);
+    }
+    Rprintf("\n");
+    ii++;
   }
 
   free(res);
@@ -204,4 +257,20 @@ void randradinv(double* ans, int* ind, const int n, const int b){
   free(perm);
 
   PutRNGstate();
+};
+
+
+
+SEXP randradinv_C(SEXP ind, SEXP bR){
+  int b = Rf_asInteger(bR);
+  int* ind_p = INTEGER(ind);
+  int n = Rf_length(ind);
+
+  SEXP ans_sexp = PROTECT(Rf_allocVector(REALSXP,n));
+  double* ans = REAL(ans_sexp);
+
+  randradinv(ans,ind_p,n,b);
+
+  UNPROTECT(1);
+  return ans_sexp;
 };

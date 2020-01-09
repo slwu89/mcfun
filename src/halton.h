@@ -23,9 +23,14 @@ int randint(const int a, const int b);
 /* randomly permute an array of size n */
 void permute(int* array, const int n);
 
+/* generate a new array (dest) from elements in (src) ordered by (order); duplicates allowed */
+void order(int* dest, const int* const src, const int* const order, const int n);
+
 /* Randomized radical inverse functions for indices in ind and for base b. */
-void randradinv(double* ans, int* ind, const int n, const int b);
+void randradinv(double* ans, int* ind, const int n, int b);
 
 SEXP permvec_C(SEXP vec);
+
+SEXP randradinv_C(SEXP ind, SEXP bR);
 
 #endif
