@@ -33,4 +33,8 @@ SEXP permvec_C(SEXP vec);
 
 SEXP randradinv_C(SEXP ind, SEXP bR);
 
+SEXP one_iterC(SEXP b2rR, SEXP resR, SEXP permR, SEXP br, SEXP nR);
+
+SEXP randradinv_CTEST(SEXP ind, SEXP bR);
+
 #endif

@@ -32,3 +32,20 @@ ordervec <- function(vector,orderV){
 randradinv <- function(ind,b){
   .Call(randradinv_C,as.integer(ind),as.integer(b))
 }
+
+#' test 3
+#'
+#' @useDynLib mcfun one_iterC
+#' @export
+one_iter <- function(b2rR, resR, permR, br, nR){
+  .Call(one_iterC,as.numeric(b2rR),as.integer(resR),as.integer(permR),as.integer(br),as.integer(nR))
+}
+
+
+#' test the whole enchilada
+#'
+#' @useDynLib mcfun randradinv_CTEST
+#' @export
+randradinv_TEST <- function(ind,b){
+  .Call(randradinv_CTEST,as.integer(ind),as.integer(b))
+}

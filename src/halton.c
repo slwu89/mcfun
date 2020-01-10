@@ -260,7 +260,6 @@ void randradinv(double* ans, int* ind, const int n, int b){
 };
 
 
-
 SEXP randradinv_C(SEXP ind, SEXP bR){
   int b = Rf_asInteger(bR);
   int* ind_p = INTEGER(ind);
@@ -271,6 +270,156 @@ SEXP randradinv_C(SEXP ind, SEXP bR){
 
   randradinv(ans,ind_p,n,b);
 
+  UNPROTECT(1);
+  return ans_sexp;
+};
+
+
+SEXP one_iterC(SEXP b2rR, SEXP resR, SEXP permR, SEXP br, SEXP nR){
+
+  double b2r = Rf_asReal(b2rR);
+  int b = Rf_asInteger(br);
+  int n = Rf_asInteger(nR);
+
+  SEXP res_dp = PROTECT(Rf_duplicate(resR));
+  int* res = INTEGER(res_dp);
+
+  int* perm = INTEGER(permR);
+
+  double* ans = (double*)calloc(n,sizeof(double));
+  int* dig = (int*)calloc(n,sizeof(int));
+  int* pdig = (int*)calloc(n,sizeof(int));
+
+  // do ONE iteration
+  for(int i=0; i<n; i++){
+    dig[i] = res[i] % b;
+  }
+
+  // perm comes from outside world
+
+  // pdig
+  for(int i=0; i<n; i++){
+    pdig[i] = perm[dig[i]];
+  }
+
+  // ans
+  for(int i=0; i<n; i++){
+    ans[i] = ans[i] + (double)pdig[i] * b2r;
+  }
+
+  // b2r
+  b2r = b2r / (double)b;
+
+  // res
+  for(int i=0; i<n; i++){
+    res[i] = (res[i] - dig[i]) / b;
+  }
+
+  SEXP ansR = PROTECT(Rf_allocVector(REALSXP,n));
+  memcpy(REAL(ansR),ans,n*sizeof(double));
+
+  SEXP digR = PROTECT(Rf_allocVector(INTSXP,n));
+  memcpy(INTEGER(digR),dig,n*sizeof(int));
+
+  SEXP pdigR = PROTECT(Rf_allocVector(INTSXP,n));
+  memcpy(INTEGER(pdigR),pdig,n*sizeof(int));
+
+  SEXP out = PROTECT(allocVector(VECSXP, 5));
+  SET_VECTOR_ELT(out, 0, res_dp);
+  SET_VECTOR_ELT(out, 1, ansR);
+  SET_VECTOR_ELT(out, 2, digR);
+  SET_VECTOR_ELT(out, 3, pdigR);
+  SET_VECTOR_ELT(out, 4, Rf_ScalarReal(b2r));
+
+  SEXP nms = PROTECT(Rf_allocVector(STRSXP, 5));
+  Rf_namesgets(out, nms);
+  SET_STRING_ELT(nms, 0, mkChar("res"));
+  SET_STRING_ELT(nms, 1, mkChar("ans"));
+  SET_STRING_ELT(nms, 2, mkChar("dig"));
+  SET_STRING_ELT(nms, 3, mkChar("pdig"));
+  SET_STRING_ELT(nms, 4, mkChar("b2r"));
+
+  free(ans);
+  free(dig);
+  free(pdig);
+  UNPROTECT(6);
+  return out;
+};
+
+
+SEXP randradinv_CTEST(SEXP ind, SEXP bR){
+
+  GetRNGstate();
+
+  int b = Rf_asInteger(bR);
+  int n = Rf_length(ind);
+
+  // other memory to set aside
+  int* dig = (int*)calloc(n,sizeof(int));
+  int* pdig = (int*)calloc(n,sizeof(int));
+  int* perm = (int*)malloc(b*sizeof(int));
+  for(int i=0; i<b; i++){
+    perm[i] = i;
+  }
+
+  // b2r
+  double b2r = 1.0 / (double)b;
+
+  // ans
+  SEXP ans_sexp = PROTECT(Rf_allocVector(REALSXP,n));
+  double* ans = REAL(ans_sexp);
+  for(int i=0; i<n; i++){
+    ans[i] = 0.0;
+  }
+
+  // res
+  int* res = (int*)calloc(n,sizeof(int));
+  memcpy(res,INTEGER(ind),n*sizeof(int));
+
+  int ii = 0;
+
+  // start the loop (brother can i have some loops?)
+  while( (1. - b2r) < 1.){
+
+    ii++;
+    Rprintf("on iter: %d\n",ii);
+
+    for(int i=0; i<n; i++){
+      dig[i] = res[i] % b;
+    }
+
+    // perm
+    permute(perm,b);
+
+    // pdig
+    for(int i=0; i<n; i++){
+      pdig[i] = perm[dig[i]];
+    }
+
+    // ans
+    for(int i=0; i<n; i++){
+      ans[i] = ans[i] + (double)pdig[i] * b2r;
+    }
+
+    // b2r
+    b2r = b2r / (double)b;
+
+    // res
+    for(int i=0; i<n; i++){
+      res[i] = (res[i] - dig[i]) / b;
+    }
+
+  }
+
+  for(int i=0; i<n; i++){
+    Rprintf("ans[i]: %f",ans[i]," ---");
+  }
+
+  PutRNGstate();
+  free(dig);
+  free(pdig);
+  free(res);
+  free(perm);
   UNPROTECT(1);
   return ans_sexp;
 };
