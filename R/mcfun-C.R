@@ -16,6 +16,24 @@ permvec <- function(vec){
   .Call(permvec_C,as.integer(vec))
 }
 
+#' test randint
+#'
+#' @useDynLib mcfun randint_C
+#' @export
+randintR <- function(k){
+  .Call(randint_C,as.integer(k))
+}
+
+#' test unif rng
+#'
+#' @useDynLib mcfun testrunifC
+#' @export
+testrunif <- function(){
+  .Call(testrunifC)
+}
+
+
+
 
 #' test 1
 #'
@@ -48,4 +66,12 @@ one_iter <- function(b2rR, resR, permR, br, nR){
 #' @export
 randradinv_TEST <- function(ind,b){
   .Call(randradinv_CTEST,as.integer(ind),as.integer(b))
+}
+
+#' test one inter with internal sampling of Fisher-Yates
+#'
+#' @useDynLib mcfun one_iterC_intPerm
+#' @export
+one_iter_intPerm <- function(res, b, n){
+  .Call(one_iterC_intPerm,as.integer(res),as.integer(b),as.integer(n))
 }

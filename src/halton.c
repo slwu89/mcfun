@@ -121,9 +121,28 @@ static const int primes[] = {
 #   get a random integer from [0,b-1] using R's PRNG
 -------------------------------------------------------------------------------- */
 
-int randint(const int a, const int b){
-  return a + (int) ((b - a + 1) * unif_rand());
+// int randint(const int a, const int b){
+//   return a + (int) ((b - a + 1) * unif_rand());
+// }
+
+int randint(const int k){
+  return (int)fmin(floor(k*unif_rand()), k-1);
 }
+
+SEXP randint_C(SEXP kR){
+  int k = Rf_asInteger(kR);
+  GetRNGstate();
+  int ans = randint(k);
+  PutRNGstate();
+  return Rf_ScalarInteger(ans);
+};
+
+SEXP testrunifC(void){
+  GetRNGstate();
+  double ans = unif_rand();
+  PutRNGstate();
+  return Rf_ScalarReal(ans);
+};
 
 
 /* --------------------------------------------------------------------------------
@@ -132,7 +151,7 @@ int randint(const int a, const int b){
 
 void permute(int* array, const int n){
   for(int i=n-1; i>0; i--){
-      int j = randint(0,i);
+      int j = randint(i+1);
       int tmp = array[i];
       array[i] = array[j];
       array[j] = tmp;
@@ -274,6 +293,9 @@ SEXP randradinv_C(SEXP ind, SEXP bR){
   return ans_sexp;
 };
 
+/* --------------------------------------------------------------------------------
+#   DEBUGGING: one iter, external source of random ints
+-------------------------------------------------------------------------------- */
 
 SEXP one_iterC(SEXP b2rR, SEXP resR, SEXP permR, SEXP br, SEXP nR){
 
@@ -346,6 +368,98 @@ SEXP one_iterC(SEXP b2rR, SEXP resR, SEXP permR, SEXP br, SEXP nR){
   return out;
 };
 
+
+/* --------------------------------------------------------------------------------
+#   DEBUGGING: one iter, internal (C) source of random ints
+-------------------------------------------------------------------------------- */
+
+SEXP one_iterC_intPerm(SEXP resR, SEXP br, SEXP nR){
+
+  GetRNGstate();
+
+  int b = Rf_asInteger(br);
+  double b2r = 1./(double)b;
+  int n = Rf_asInteger(nR);
+
+  SEXP res_dp = PROTECT(Rf_duplicate(resR));
+  int* res = INTEGER(res_dp);
+
+  int* perm = (int*)malloc(b*sizeof(int));
+  for(int i=0; i<b; i++){
+    perm[i] = i;
+  }
+
+  double* ans = (double*)calloc(n,sizeof(double));
+  int* dig = (int*)calloc(n,sizeof(int));
+  int* pdig = (int*)calloc(n,sizeof(int));
+
+  // do ONE iteration
+  for(int i=0; i<n; i++){
+    dig[i] = res[i] % b;
+  }
+
+  // perm
+  permute(perm,b);
+  Rprintf("checking the permutation isn't fucked up \n");
+  for(int i=0; i<b; i++){
+    Rprintf("perm[i]: %d --- ",perm[i]);
+  }
+  Rprintf("\n");
+
+  // pdig
+  for(int i=0; i<n; i++){
+    pdig[i] = perm[dig[i]];
+  }
+
+  // ans
+  for(int i=0; i<n; i++){
+    ans[i] = ans[i] + (double)pdig[i] * b2r;
+  }
+
+  // b2r
+  b2r = b2r / (double)b;
+
+  // res
+  for(int i=0; i<n; i++){
+    res[i] = (res[i] - dig[i]) / b;
+  }
+
+  SEXP ansR = PROTECT(Rf_allocVector(REALSXP,n));
+  memcpy(REAL(ansR),ans,n*sizeof(double));
+
+  SEXP digR = PROTECT(Rf_allocVector(INTSXP,n));
+  memcpy(INTEGER(digR),dig,n*sizeof(int));
+
+  SEXP pdigR = PROTECT(Rf_allocVector(INTSXP,n));
+  memcpy(INTEGER(pdigR),pdig,n*sizeof(int));
+
+  SEXP out = PROTECT(allocVector(VECSXP, 5));
+  SET_VECTOR_ELT(out, 0, res_dp);
+  SET_VECTOR_ELT(out, 1, ansR);
+  SET_VECTOR_ELT(out, 2, digR);
+  SET_VECTOR_ELT(out, 3, pdigR);
+  SET_VECTOR_ELT(out, 4, Rf_ScalarReal(b2r));
+
+  SEXP nms = PROTECT(Rf_allocVector(STRSXP, 5));
+  Rf_namesgets(out, nms);
+  SET_STRING_ELT(nms, 0, mkChar("res"));
+  SET_STRING_ELT(nms, 1, mkChar("ans"));
+  SET_STRING_ELT(nms, 2, mkChar("dig"));
+  SET_STRING_ELT(nms, 3, mkChar("pdig"));
+  SET_STRING_ELT(nms, 4, mkChar("b2r"));
+
+  free(ans);
+  free(perm);
+  free(dig);
+  free(pdig);
+  PutRNGstate();
+  UNPROTECT(6);
+  return out;
+};
+
+/* --------------------------------------------------------------------------------
+#   the whole thing (STILL DOESNT FUCKING WORK)
+-------------------------------------------------------------------------------- */
 
 SEXP randradinv_CTEST(SEXP ind, SEXP bR){
 

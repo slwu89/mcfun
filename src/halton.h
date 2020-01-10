@@ -17,8 +17,13 @@
 #include <Rmath.h>
 #include <Rinternals.h>
 
+SEXP testrunifC(void);
+
 /* get a random integer from [0,b-1] */
-int randint(const int a, const int b);
+// int randint(const int a, const int b);
+int randint(const int k);
+
+SEXP randint_C(SEXP kR);
 
 /* randomly permute an array of size n */
 void permute(int* array, const int n);
@@ -34,6 +39,8 @@ SEXP permvec_C(SEXP vec);
 SEXP randradinv_C(SEXP ind, SEXP bR);
 
 SEXP one_iterC(SEXP b2rR, SEXP resR, SEXP permR, SEXP br, SEXP nR);
+
+SEXP one_iterC_intPerm(SEXP resR, SEXP br, SEXP nR);
 
 SEXP randradinv_CTEST(SEXP ind, SEXP bR);
 
