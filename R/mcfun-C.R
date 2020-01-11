@@ -7,8 +7,21 @@
 #
 # -------------------------------------------------------------------------------- #
 
+#' Draw a Random Integer in [0,k-1]
+#'
+#' @param k an integer value
+#'
+#' @useDynLib mcfun randint_C
+#' @export
+randint <- function(k){
+  .Call(randint_C,as.integer(k))
+}
 
-#' test
+#' Fisher-Yates Shuffle
+#'
+#' Randomly shuffle a vector.
+#'
+#' @param vec a vector of integers
 #'
 #' @useDynLib mcfun permvec_C
 #' @export
@@ -16,62 +29,32 @@ permvec <- function(vec){
   .Call(permvec_C,as.integer(vec))
 }
 
-#' test randint
+#' Order a Vector
 #'
-#' @useDynLib mcfun randint_C
-#' @export
-randintR <- function(k){
-  .Call(randint_C,as.integer(k))
-}
-
-#' test unif rng
+#' Generate a new vector from elements in \code{src} ordered by \code{order};
+#' \code{order} may be longer than \code{src} (duplicates allowed).
 #'
-#' @useDynLib mcfun testrunifC
-#' @export
-testrunif <- function(){
-  .Call(testrunifC)
-}
-
-
-
-
-#' test 1
+#' @param src a vector of integers to be reordered
+#' @param order a (zero-indexed) vector of indices
 #'
 #' @useDynLib mcfun ordervec_C
 #' @export
-ordervec <- function(vector,orderV){
-  .Call(ordervec_C,as.integer(vector),as.integer(orderV))
+ordervec <- function(src,order){
+  .Call(ordervec_C,as.integer(src),as.integer(order))
 }
 
-#' test 2
+#' Randomized van der Corput Scrambling Algorithm
+#'
+#' Randomized radical inverse functions for indices in in \code{ind} and for base \code{b}.
+#' The calling routine should set the random seed if reproducibility is desired.
+#' Input is a vector ind of non-negative integer indices and a prime base
+#' \code{b} >= 2. The while loop terminates in floating point arithmetic.
+#'
+#' @param ind a vector of integer indices
+#' @param b a base
 #'
 #' @useDynLib mcfun randradinv_C
 #' @export
 randradinv <- function(ind,b){
   .Call(randradinv_C,as.integer(ind),as.integer(b))
-}
-
-#' test 3
-#'
-#' @useDynLib mcfun one_iterC
-#' @export
-one_iter <- function(b2rR, resR, permR, br, nR){
-  .Call(one_iterC,as.numeric(b2rR),as.integer(resR),as.integer(permR),as.integer(br),as.integer(nR))
-}
-
-
-#' test the whole enchilada
-#'
-#' @useDynLib mcfun randradinv_CTEST
-#' @export
-randradinv_TEST <- function(ind,b){
-  .Call(randradinv_CTEST,as.integer(ind),as.integer(b))
-}
-
-#' test one inter with internal sampling of Fisher-Yates
-#'
-#' @useDynLib mcfun one_iterC_intPerm
-#' @export
-one_iter_intPerm <- function(res, b, n){
-  .Call(one_iterC_intPerm,as.integer(res),as.integer(b),as.integer(n))
 }

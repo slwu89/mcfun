@@ -118,12 +118,8 @@ static const int primes[] = {
 
 
 /* --------------------------------------------------------------------------------
-#   get a random integer from [0,b-1] using R's PRNG
+#   get a random integer from [0,k-1] using R's PRNG
 -------------------------------------------------------------------------------- */
-
-// int randint(const int a, const int b){
-//   return a + (int) ((b - a + 1) * unif_rand());
-// }
 
 int randint(const int k){
   return (int)fmin(floor(k*unif_rand()), k-1);
@@ -135,13 +131,6 @@ SEXP randint_C(SEXP kR){
   int ans = randint(k);
   PutRNGstate();
   return Rf_ScalarInteger(ans);
-};
-
-SEXP testrunifC(void){
-  GetRNGstate();
-  double ans = unif_rand();
-  PutRNGstate();
-  return Rf_ScalarReal(ans);
 };
 
 
@@ -175,17 +164,19 @@ SEXP permvec_C(SEXP vec){
 /* --------------------------------------------------------------------------------
 #   generate a new array (dest) from elements in (src) ordered by (order); duplicates allowed
 -------------------------------------------------------------------------------- */
+
 void order(int* dest, const int* const src, const int* const order, const int n){
   for(int i=0; i<n; i++){
     dest[i] = src[order[i]];
   }
 };
 
-SEXP ordervec_C(SEXP vector, SEXP orderV){
-  int n = Rf_length(orderV);
+SEXP ordervec_C(SEXP srcR, SEXP orderR){
+
+  int n = Rf_length(orderR);
   SEXP out = PROTECT(Rf_allocVector(INTSXP,n));
 
-  order(INTEGER(out),INTEGER(vector),INTEGER(orderV),n);
+  order(INTEGER(out),INTEGER(srcR),INTEGER(orderR),n);
 
   UNPROTECT(1);
   return out;
@@ -200,340 +191,67 @@ SEXP ordervec_C(SEXP vector, SEXP orderV){
 #   b: base
 -------------------------------------------------------------------------------- */
 
-void randradinv(double* ans, int* ind, const int n, int b){
+SEXP randradinv_C(SEXP ind, SEXP bR){
 
   GetRNGstate();
-  Rprintf("b: %d\n",b);
 
-  double b2r = 1.0 / (double)b;
-  Rprintf("b2r: %f\n",b2r);
+  int b = Rf_asInteger(bR);
+  double b2r = 1./(double)b;
+  int n = Rf_length(ind);
 
-  for(int i=0; i<n; i++){
-    ans[i] = 0.;
-  }
-
-  int* res = (int*)malloc(n*sizeof(int));
-  memcpy(res,ind,sizeof(int)*n);
-
-  /* things we need in the loop */
-  int* dig = (int*)malloc(n*sizeof(int));
-  int* pdig = (int*)malloc(n*sizeof(int));
+  /* allocate memory for internal computations */
+  SEXP res_sexp = PROTECT(Rf_duplicate(ind));
+  int* res = INTEGER(res_sexp);
 
   int* perm = (int*)malloc(b*sizeof(int));
   for(int i=0; i<b; i++){
     perm[i] = i;
   }
 
-  /* assumes floating point comparisons, fixed precision */
-  int ii = 1;
-  while(1. - b2r < 1.){
-    Rprintf("on iteration %d\n",ii);
+  double* ans = (double*)calloc(n,sizeof(double));
+  int* dig = (int*)calloc(n,sizeof(int));
+  int* pdig = (int*)calloc(n,sizeof(int));
 
-    // res %% b
+  /* Randomized van der Corput scrambling */
+  while( (1. - b2r) < 1. ){
+
+    // dig <- res %% b
     for(int i=0; i<n; i++){
       dig[i] = res[i] % b;
-      Rprintf("res[i] = %d, b = %d, dig[i] = %d --- ",res[i],b,dig[i]);
     }
-    Rprintf("\n");
 
-    // sample(b)
+    // perm <- sample(b)-1
     permute(perm,b);
-    for(int i=0; i<b; i++){
-      Rprintf("perm[i] = %d --- ",perm[i]);
-    }
-    Rprintf("\n");
 
-    // perm[dig]
+    // pdig <- perm[1+dig]
     order(pdig,perm,dig,n);
-    for(int i=0; i<n; i++){
-      Rprintf("pdig[i] = %d --- ",pdig[i]);
-    }
-    Rprintf("\n");
 
     // ans <- ans + pdig * b2r
     for(int i=0; i<n; i++){
       ans[i] = ans[i] + (double)pdig[i] * b2r;
-      Rprintf("ans[i] = %d --- ",ans[i]);
     }
-    Rprintf("\n");
 
     // b2r <- b2r/b
-    b2r = b2r/(double)b;
-    Rprintf("b2r: %d\n",b2r);
-
-    // res <- (res - dig)/b
-    for(int i=0; i<n; i++){
-      res[i] = (res[i] - dig[i])/b;
-      Rprintf("res[i] = %d --- ",res[i]);
-    }
-    Rprintf("\n");
-    ii++;
-  }
-
-  free(res);
-  free(dig);
-  free(pdig);
-  free(perm);
-
-  PutRNGstate();
-};
-
-
-SEXP randradinv_C(SEXP ind, SEXP bR){
-  int b = Rf_asInteger(bR);
-  int* ind_p = INTEGER(ind);
-  int n = Rf_length(ind);
-
-  SEXP ans_sexp = PROTECT(Rf_allocVector(REALSXP,n));
-  double* ans = REAL(ans_sexp);
-
-  randradinv(ans,ind_p,n,b);
-
-  UNPROTECT(1);
-  return ans_sexp;
-};
-
-/* --------------------------------------------------------------------------------
-#   DEBUGGING: one iter, external source of random ints
--------------------------------------------------------------------------------- */
-
-SEXP one_iterC(SEXP b2rR, SEXP resR, SEXP permR, SEXP br, SEXP nR){
-
-  double b2r = Rf_asReal(b2rR);
-  int b = Rf_asInteger(br);
-  int n = Rf_asInteger(nR);
-
-  SEXP res_dp = PROTECT(Rf_duplicate(resR));
-  int* res = INTEGER(res_dp);
-
-  int* perm = INTEGER(permR);
-
-  double* ans = (double*)calloc(n,sizeof(double));
-  int* dig = (int*)calloc(n,sizeof(int));
-  int* pdig = (int*)calloc(n,sizeof(int));
-
-  // do ONE iteration
-  for(int i=0; i<n; i++){
-    dig[i] = res[i] % b;
-  }
-
-  // perm comes from outside world
-
-  // pdig
-  for(int i=0; i<n; i++){
-    pdig[i] = perm[dig[i]];
-  }
-
-  // ans
-  for(int i=0; i<n; i++){
-    ans[i] = ans[i] + (double)pdig[i] * b2r;
-  }
-
-  // b2r
-  b2r = b2r / (double)b;
-
-  // res
-  for(int i=0; i<n; i++){
-    res[i] = (res[i] - dig[i]) / b;
-  }
-
-  SEXP ansR = PROTECT(Rf_allocVector(REALSXP,n));
-  memcpy(REAL(ansR),ans,n*sizeof(double));
-
-  SEXP digR = PROTECT(Rf_allocVector(INTSXP,n));
-  memcpy(INTEGER(digR),dig,n*sizeof(int));
-
-  SEXP pdigR = PROTECT(Rf_allocVector(INTSXP,n));
-  memcpy(INTEGER(pdigR),pdig,n*sizeof(int));
-
-  SEXP out = PROTECT(allocVector(VECSXP, 5));
-  SET_VECTOR_ELT(out, 0, res_dp);
-  SET_VECTOR_ELT(out, 1, ansR);
-  SET_VECTOR_ELT(out, 2, digR);
-  SET_VECTOR_ELT(out, 3, pdigR);
-  SET_VECTOR_ELT(out, 4, Rf_ScalarReal(b2r));
-
-  SEXP nms = PROTECT(Rf_allocVector(STRSXP, 5));
-  Rf_namesgets(out, nms);
-  SET_STRING_ELT(nms, 0, mkChar("res"));
-  SET_STRING_ELT(nms, 1, mkChar("ans"));
-  SET_STRING_ELT(nms, 2, mkChar("dig"));
-  SET_STRING_ELT(nms, 3, mkChar("pdig"));
-  SET_STRING_ELT(nms, 4, mkChar("b2r"));
-
-  free(ans);
-  free(dig);
-  free(pdig);
-  UNPROTECT(6);
-  return out;
-};
-
-
-/* --------------------------------------------------------------------------------
-#   DEBUGGING: one iter, internal (C) source of random ints
--------------------------------------------------------------------------------- */
-
-SEXP one_iterC_intPerm(SEXP resR, SEXP br, SEXP nR){
-
-  GetRNGstate();
-
-  int b = Rf_asInteger(br);
-  double b2r = 1./(double)b;
-  int n = Rf_asInteger(nR);
-
-  SEXP res_dp = PROTECT(Rf_duplicate(resR));
-  int* res = INTEGER(res_dp);
-
-  int* perm = (int*)malloc(b*sizeof(int));
-  for(int i=0; i<b; i++){
-    perm[i] = i;
-  }
-
-  double* ans = (double*)calloc(n,sizeof(double));
-  int* dig = (int*)calloc(n,sizeof(int));
-  int* pdig = (int*)calloc(n,sizeof(int));
-
-  // do ONE iteration
-  for(int i=0; i<n; i++){
-    dig[i] = res[i] % b;
-  }
-
-  // perm
-  permute(perm,b);
-  Rprintf("checking the permutation isn't fucked up \n");
-  for(int i=0; i<b; i++){
-    Rprintf("perm[i]: %d --- ",perm[i]);
-  }
-  Rprintf("\n");
-
-  // pdig
-  for(int i=0; i<n; i++){
-    pdig[i] = perm[dig[i]];
-  }
-
-  // ans
-  for(int i=0; i<n; i++){
-    ans[i] = ans[i] + (double)pdig[i] * b2r;
-  }
-
-  // b2r
-  b2r = b2r / (double)b;
-
-  // res
-  for(int i=0; i<n; i++){
-    res[i] = (res[i] - dig[i]) / b;
-  }
-
-  SEXP ansR = PROTECT(Rf_allocVector(REALSXP,n));
-  memcpy(REAL(ansR),ans,n*sizeof(double));
-
-  SEXP digR = PROTECT(Rf_allocVector(INTSXP,n));
-  memcpy(INTEGER(digR),dig,n*sizeof(int));
-
-  SEXP pdigR = PROTECT(Rf_allocVector(INTSXP,n));
-  memcpy(INTEGER(pdigR),pdig,n*sizeof(int));
-
-  SEXP out = PROTECT(allocVector(VECSXP, 5));
-  SET_VECTOR_ELT(out, 0, res_dp);
-  SET_VECTOR_ELT(out, 1, ansR);
-  SET_VECTOR_ELT(out, 2, digR);
-  SET_VECTOR_ELT(out, 3, pdigR);
-  SET_VECTOR_ELT(out, 4, Rf_ScalarReal(b2r));
-
-  SEXP nms = PROTECT(Rf_allocVector(STRSXP, 5));
-  Rf_namesgets(out, nms);
-  SET_STRING_ELT(nms, 0, mkChar("res"));
-  SET_STRING_ELT(nms, 1, mkChar("ans"));
-  SET_STRING_ELT(nms, 2, mkChar("dig"));
-  SET_STRING_ELT(nms, 3, mkChar("pdig"));
-  SET_STRING_ELT(nms, 4, mkChar("b2r"));
-
-  free(ans);
-  free(perm);
-  free(dig);
-  free(pdig);
-  PutRNGstate();
-  UNPROTECT(6);
-  return out;
-};
-
-/* --------------------------------------------------------------------------------
-#   the whole thing (STILL DOESNT FUCKING WORK)
--------------------------------------------------------------------------------- */
-
-SEXP randradinv_CTEST(SEXP ind, SEXP bR){
-
-  GetRNGstate();
-
-  int b = Rf_asInteger(bR);
-  int n = Rf_length(ind);
-
-  // other memory to set aside
-  int* dig = (int*)calloc(n,sizeof(int));
-  int* pdig = (int*)calloc(n,sizeof(int));
-  int* perm = (int*)malloc(b*sizeof(int));
-  for(int i=0; i<b; i++){
-    perm[i] = i;
-  }
-
-  // b2r
-  double b2r = 1.0 / (double)b;
-
-  // ans
-  SEXP ans_sexp = PROTECT(Rf_allocVector(REALSXP,n));
-  double* ans = REAL(ans_sexp);
-  for(int i=0; i<n; i++){
-    ans[i] = 0.0;
-  }
-
-  // res
-  int* res = (int*)calloc(n,sizeof(int));
-  memcpy(res,INTEGER(ind),n*sizeof(int));
-
-  int ii = 0;
-
-  // start the loop (brother can i have some loops?)
-  while( (1. - b2r) < 1.){
-
-    ii++;
-    Rprintf("on iter: %d\n",ii);
-
-    for(int i=0; i<n; i++){
-      dig[i] = res[i] % b;
-    }
-
-    // perm
-    permute(perm,b);
-
-    // pdig
-    for(int i=0; i<n; i++){
-      pdig[i] = perm[dig[i]];
-    }
-
-    // ans
-    for(int i=0; i<n; i++){
-      ans[i] = ans[i] + (double)pdig[i] * b2r;
-    }
-
-    // b2r
     b2r = b2r / (double)b;
 
-    // res
+    // res <- (res - dig)/b
     for(int i=0; i<n; i++){
       res[i] = (res[i] - dig[i]) / b;
     }
 
   }
 
-  for(int i=0; i<n; i++){
-    Rprintf("ans[i]: %f",ans[i]," ---");
-  }
+  /* return object */
+  SEXP ans2R = PROTECT(Rf_allocVector(REALSXP,n));
+  memcpy(REAL(ans2R),ans,n*sizeof(double));
 
+  /* clean up after ourselves before return to R */
   PutRNGstate();
+
+  free(perm);
+  free(ans);
   free(dig);
   free(pdig);
-  free(res);
-  free(perm);
-  UNPROTECT(1);
-  return ans_sexp;
+  UNPROTECT(3);
+  return ans2R;
 };

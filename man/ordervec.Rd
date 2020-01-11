@@ -2,10 +2,16 @@
 % Please edit documentation in R/mcfun-C.R
 \name{ordervec}
 \alias{ordervec}
-\title{test 1}
+\title{Order a Vector}
 \usage{
-ordervec(vector, orderV)
+ordervec(src, order)
+}
+\arguments{
+\item{src}{a vector of integers to be reordered}
+
+\item{order}{a (zero-indexed) vector of indices}
 }
 \description{
-test 1
+Generate a new vector from elements in \code{src} ordered by \code{order};
+\code{order} may be longer than \code{src} (duplicates allowed).
 }

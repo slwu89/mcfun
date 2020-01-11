@@ -2,10 +2,13 @@
 % Please edit documentation in R/mcfun-C.R
 \name{permvec}
 \alias{permvec}
-\title{test}
+\title{Fisher-Yates Shuffle}
 \usage{
 permvec(vec)
 }
+\arguments{
+\item{vec}{a vector of integers}
+}
 \description{
-test
+Randomly shuffle a vector.
 }

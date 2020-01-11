@@ -2,10 +2,18 @@
 % Please edit documentation in R/mcfun-C.R
 \name{randradinv}
 \alias{randradinv}
-\title{test 2}
+\title{Randomized van der Corput Scrambling Algorithm}
 \usage{
 randradinv(ind, b)
 }
+\arguments{
+\item{ind}{a vector of integer indices}
+
+\item{b}{a base}
+}
 \description{
-test 2
+Randomized radical inverse functions for indices in in \code{ind} and for base \code{b}.
+The calling routine should set the random seed if reproducibility is desired.
+Input is a vector ind of non-negative integer indices and a prime base
+\code{b} >= 2. The while loop terminates in floating point arithmetic.
 }
