@@ -193,11 +193,19 @@ SEXP ordervec_C(SEXP srcR, SEXP orderR){
 
 SEXP randradinv_C(SEXP ind, SEXP bR){
 
+  int n = Rf_length(ind);
+
+  int* ind_p = INTEGER(ind);
+  for(int i=0; i<n; i++){
+    if(ind_p[i] < 0){
+      Rf_error("Indices cannot be negative.");
+    }
+  }
+
   GetRNGstate();
 
   int b = Rf_asInteger(bR);
   double b2r = 1./(double)b;
-  int n = Rf_length(ind);
 
   /* allocate memory for internal computations */
   SEXP res_sexp = PROTECT(Rf_duplicate(ind));
