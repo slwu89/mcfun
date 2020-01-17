@@ -1,0 +1,49 @@
+---
+title: "Halton Sequences for Randomized Quasi-Monte Carlo (RQMC)"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{halton}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+The original algorithm was written by [Art B. Owen](http://statweb.stanford.edu/~owen/) and can be found [here](http://statweb.stanford.edu/~owen/code/). I translated the internal function `randradinv`, which produces randomized (scrambled) van der Corput sequences into **C**, and it is where most of the computation is done.
+
+The code snippet below shows how to use the `rhalton` function and is taken from Figure 5 of the paper found at the above link. We compare the standard error of the RQMC estimate to the CMC estimate; unsurprisingly RQMC is several of orders less variable.
+
+```{r setup}
+library(mcfun)
+
+f <- function(v){sum(v)^2} # Example function that is easy for RMQC
+
+# RQMC
+R <- 10
+n <- 5000
+p <- 20
+stride <- 1000 # Or replace 1000 by nthprime(0,getlength=TRUE)
+muvec <- rep(0,R)
+for(r in 1:R){
+    x <- rhalton(n,p,singleseed = r*stride)
+    muvec[r] <- mean( apply( x,1,f ) )
+}
+mu <- mean(muvec)
+se <- sqrt(var(muvec)/R)
+
+# CMC (crude Monte Carlo)
+muvec_cmc <- rep(0,R)
+for(r in 1:R){
+  x <- matrix(data = runif(n*p),nrow = n,ncol = p)
+  muvec_cmc[r] <- mean( apply( x,1,f ) )
+}
+mu_cmc <- mean(muvec_cmc)
+se_cmc <- sqrt(var(muvec_cmc)/R)
+
+knitr::kable(matrix(data=c(mu,se,mu_cmc,se_cmc),nrow=2,ncol=2,byrow=T,dimnames=list(c("RQMC","CMC"),c("mean","se"))),caption = "Comparison of RQMC to crude Monte Carlo on a simple problem")
+```
