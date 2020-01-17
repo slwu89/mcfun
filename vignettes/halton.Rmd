@@ -16,7 +16,7 @@ knitr::opts_chunk$set(
 
 The original algorithm was written by [Art B. Owen](http://statweb.stanford.edu/~owen/) and can be found [here](http://statweb.stanford.edu/~owen/code/). I translated the internal function `randradinv`, which produces randomized (scrambled) van der Corput sequences into **C**, and it is where most of the computation is done.
 
-The code snippet below shows how to use the `rhalton` function and is taken from Figure 5 of the paper found at the above link. We compare the standard error of the RQMC estimate to the CMC estimate; unsurprisingly RQMC is several of orders less variable.
+The code snippet below shows how to use the `rhalton` function and is taken from Figure 5 of the paper found at the above link. We compare the standard error of the RQMC estimate to the CMC estimate; unsurprisingly RQMC is several orders of magnitude less variable.
 
 ```{r}
 library(mcfun)
@@ -30,8 +30,8 @@ p <- 20
 stride <- 1000 # Or replace 1000 by nthprime(0,getlength=TRUE)
 muvec <- rep(0,R)
 for(r in 1:R){
-    x <- rhalton(n,p,singleseed = r*stride)
-    muvec[r] <- mean( apply( x,1,f ) )
+  x <- rhalton(n,p,singleseed = r*stride)
+  muvec[r] <- mean( apply( x,1,f ) )
 }
 mu <- mean(muvec)
 se <- sqrt(var(muvec)/R)
@@ -85,4 +85,25 @@ g3 <- function(z){
 g4 <- function(z){
   as.integer(z < qnorm(0.001))
 }
+```
+
+We now compare the relative efficiency of RQMC versus MC on these problems across a range of dimensions $d$ and sample sizes $n$. First we numerically calculate $\mu_{k} = \mathbb{E}[g_{k}(z)]$ and $\sigma_{k}^{2}=\mathrm{Var}[g_{k}(z)]$ for each integrand which will be used in the theoretical estimate of crude Monte Carlo efficiency, $\frac{\sigma_{k}^{2}}{n}$.
+
+```{r}
+library(pracma)
+mu1 <- integral(fun = Vectorize(fk,"x"),xmin=0,xmax=1,g=g1)
+mu2 <- integral(fun = Vectorize(fk,"x"),xmin=0,xmax=1,g=g2)
+mu3 <- integral(fun = Vectorize(fk,"x"),xmin=0,xmax=1,g=g3)
+mu4 <- integral(fun = Vectorize(fk,"x"),xmin=0,xmax=1,g=g4)
+```
+
+Now we check RQMC's efficiency on $f_{1}$.
+
+
+```{r}
+n_sweep <- c(1e2,1e3,1e4,1e5)
+d_sweep <- 1:50
+R <- 100
+
+
 ```
